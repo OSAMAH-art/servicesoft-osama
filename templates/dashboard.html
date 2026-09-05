@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+{% block title %}البحث عن قطعة{% endblock %}
+{% block content %}
+<div class="topbar">
+  <span>مرحباً، {{ username }}</span>
+  <a href="{{ url_for('logout') }}">تسجيل خروج</a>
+</div>
+
+{% if not index_ready %}
+<div class="warning">
+  ⚠️ قاعدة بيانات الصور غير مبنية بعد على هذا السيرفر. شغّل <code>build_index.py</code> أولاً (راجع README.md).
+</div>
+{% endif %}
+
+<div class="card upload-card">
+  <h1>ابحث عن قطعة بالصورة</h1>
+  <p>اضغط الزر وصوّر القطعة أو ارفع صورتها، والنظام يطلعلك أقرب القطع المشابهة من المخزن</p>
+  <input type="file" id="imageInput" accept="image/*" capture="environment" hidden>
+  <button id="uploadBtn" class="btn">📷 ادخل صورة</button>
+  <div id="preview"></div>
+  <div id="loading" style="display:none">جاري البحث...</div>
+</div>
+
+<div id="results" class="results-grid"></div>
+
+<script>
+const input = document.getElementById('imageInput');
+const btn = document.getElementById('uploadBtn');
+const preview = document.getElementById('preview');
+const loading = document.getElementById('loading');
+const resultsDiv = document.getElementById('results');
+
+btn.addEventListener('click', () => input.click());
+
+input.addEventListener('change', async () => {
+  const file = input.files[0];
+  if (!file) return;
+
+  preview.innerHTML = `<img src="${URL.createObjectURL(file)}" class="preview-img" alt="الصورة المرفوعة">`;
+  resultsDiv.innerHTML = '';
+  loading.style.display = 'block';
+
+  const formData = new FormData();
+  formData.append('image', file);
+
+  try {
+    const res = await fetch('/api/search', { method: 'POST', body: formData });
+    const data = await res.json();
+    loading.style.display = 'none';
+
+    if (data.error) {
+      resultsDiv.innerHTML = `<p class="error">${data.error}</p>`;
+      return;
+    }
+
+    if (!data.results || data.results.length === 0) {
+      resultsDiv.innerHTML = `<p>ما لقيت نتائج مشابهة</p>`;
+      return;
+    }
+
+    resultsDiv.innerHTML = data.results.map(r => `
+      <div class="result-card">
+        <img src="${r.PictureLocation || ''}" class="result-img" alt="${r.ItemName || ''}">
+        <div class="result-info">
+          <div class="score">نسبة التطابق: ${(r.score * 100).toFixed(0)}%</div>
+          <div><b>الكود:</b> ${r.ItemNumber ?? '-'}</div>
+          <div><b>الاسم:</b> ${r.ItemName ?? '-'}</div>
+          <div><b>الكمية:</b> ${r.Quantity ?? '-'}</div>
+          <div><b>الرف:</b> ${r.ShelfNo ?? '-'}</div>
+          <div><b>الفرع:</b> ${r.BranchName ?? '-'}</div>
+        </div>
+      </div>
+    `).join('');
+  } catch (e) {
+    loading.style.display = 'none';
+    resultsDiv.innerHTML = `<p class="error">صار خطأ، حاول مرة ثانية</p>`;
+  }
+});
+</script>
+{% endblock %}

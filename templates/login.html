@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block title %}تسجيل الدخول{% endblock %}
+{% block content %}
+<div class="card auth-card">
+  <h1>تسجيل الدخول</h1>
+  <form method="POST">
+    <input type="text" name="username" placeholder="اسم المستخدم" required autofocus>
+    <input type="password" name="password" placeholder="كلمة المرور" required>
+    <button type="submit" class="btn">دخول</button>
+  </form>
+  <p class="switch-link">ما عندك حساب؟ <a href="{{ url_for('register') }}">إنشاء حساب جديد</a></p>
+</div>
+{% endblock %}
